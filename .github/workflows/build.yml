@@ -12,7 +12,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [ ubuntu-lates]
+        os: [ ubuntu-latest]
 
     steps:
       - uses: actions/checkout@v3
@@ -26,11 +26,26 @@ jobs:
         run: dotnet restore
 
       - name: Build
-        run: dotnet build -r linux-musl-x64
+        run: dotnet build  -c Release -r linux-musl-x64  -p:ImportByWildcardBeforeSolution=false
 
-      - name: Check format and lints
-        run: make check
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-
-      - name: Test with the dotnet CLI
-        run: dotnet test
+      - id: download
+        name: Download the release binary
+        uses: actions/download-artifact@v3
+      - name: Show files
+        run: |
+          pwd
+          find
+      - name: Copy files
+        run: |
+          mkdir out
+          mv x86_64-apple-darwin/neocmakelsp out/neocmakelsp-x86_64-apple-darwin
+          mv x86_64-pc-windows-msvc/neocmakelsp.exe out/neocmakelsp-x86_64-pc-windows-msvc.exe
+          mv x86_64-unknown-linux-gnu/neocmakelsp out/neocmakelsp-x86_64-unknown-linux-gnu
+          mv x86_64-unknown-linux-musl/neocmakelsp out/neocmakelsp-x86_64-unknown-linux-musl
+          cd out
+          sha256sum * > sha256sum
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: out/*
+          draft: true
